@@ -7,7 +7,7 @@ def parse_args():
 
     # environment
     parser.add_argument('--exp-name', type=str, default=os.path.basename(__file__).rstrip(".py"))
-    parser.add_argument('--env-name', type=str, default="CartPole")
+    parser.add_argument('--env-name', type=str, default="cartpole")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--pretrained', type=int, default=0)
 

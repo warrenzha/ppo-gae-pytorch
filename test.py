@@ -8,7 +8,7 @@ import numpy as np
 
 import gym
 # import roboschool
-import pybullet
+# import pybullet
 
 from arguments import parse_args
 from config import get_config
