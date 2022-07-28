@@ -16,6 +16,8 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 `python test.py --env-name cartpole --seed 0 --pretrained 0`
 - All parameters and hyperparamters to control training / testing are in `config.py` file.
 
+We provide a pre-trained model that can be used for evaluation. To run PPO, call
+`python test.py --env-name cartpole --pretrained 1`
 
 #### Note :
   - Device is set to GPU as default if CUDA is available.
