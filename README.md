@@ -1,4 +1,4 @@
-# SSRL-dynamic-mmwave-mesh
+# SSRL-PPO
 _Wenyuan Zhao_
 
 ## Introduction
