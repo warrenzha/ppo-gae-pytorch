@@ -10,13 +10,11 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 
 ## Usage
 
-- To train a new network : run `train.py`
-- To test a preTrained network : run `test.py`
-- To plot graphs using log files : run `plot_graph.py`
-- To save images for gif and make gif using a preTrained network : run `make_gif.py`
-- All parameters and hyperparamters to control training / testing / graphs / gifs are in their respective `.py` file
-- `PPO_colab.ipynb` combines all the files in a jupyter-notebook
-- All the **hyperparameters used for training (preTrained) policies are listed** in the [`README.md` in PPO_preTrained directory](https://github.com/nikhilbarhate99/PPO-PyTorch/tree/master/PPO_preTrained)
+- To train a new network : example - train PPO on CartPole domain `python train.py --env-name cartpole --seed 0 --pretrained 0`
+- To test a preTrained network : example - test PPO on CartPole domain `python test.py --env-name cartpole --seed 0 --pretrained 0`
+- All parameters and hyperparamters to control training / testing / graphs / gifs are in `config.py` file
+
 
 #### Note :
-  - if the environment runs on CPU, use CPU as device for faster training. Box-2d and Roboschool run on CPU and training them on GPU device will be significantly slower because the data will be moved between CPU and GPU often
+  - Device is set to GPU as default if CUDA is available.
+  - if the environment runs on CPU, use CPU as device for faster training. Box-2d and Roboschool run on CPU and training them on GPU device will be significantly slower because the data will be moved between CPU and GPU often.
