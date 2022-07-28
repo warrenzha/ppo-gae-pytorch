@@ -10,9 +10,11 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 
 ## Usage
 
-- To train a new network : example - train PPO on CartPole domain `python train.py --env-name cartpole --seed 0 --pretrained 0`
-- To test a preTrained network : example - test PPO on CartPole domain `python test.py --env-name cartpole --seed 0 --pretrained 0`
-- All parameters and hyperparamters to control training / testing / graphs / gifs are in `config.py` file
+- To train a new network : example - train PPO on CartPole domain   
+`python train.py --env-name cartpole --seed 0 --pretrained 0`
+- To test a preTrained network : example - test PPO on CartPole domain   
+`python test.py --env-name cartpole --seed 0 --pretrained 0`
+- All parameters and hyperparamters to control training / testing are in `config.py` file.
 
 
 #### Note :
