@@ -1,8 +1,6 @@
 # SSRL-dynamic-mmwave-mesh
 _Wenyuan Zhao_
 
-Pytorch implementation of PPO-based reinforcement agent.
-
 ## Introduction
 
 This repository provides a PyTorch implementation of Proximal Policy Optimization (PPO) with clipped objective for OpenAI gym environments. It can still be used for complex environments but may require some hyperparameter-tuning or changes in the code.
