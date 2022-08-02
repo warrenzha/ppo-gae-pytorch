@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="3db3ef5d-1938-488a-8425-647c5786556a" name="xyzhang-lab-server">
+        <fileTransfer rootFolder="/home/wenyuanzhao" accessType="SFTP" host="xyzhang-lab-server.ucsd.edu" port="22" sshConfigId="cfafc2fc-84b1-4648-833e-07c3d4caa72c" sshConfig="wenyuanzhao@xyzhang-lab-server.ucsd.edu:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

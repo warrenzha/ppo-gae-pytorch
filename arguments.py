@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import os
+from distutils.util import strtobool
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -10,6 +11,7 @@ def parse_args():
     parser.add_argument('--env-name', type=str, default="cartpole")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--pretrained', type=int, default=0)
+    parser.add_argument('--render', type=lambda x:bool(strtobool(x)), default=False)
 
 
     args = parser.parse_args()

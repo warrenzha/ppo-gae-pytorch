@@ -48,7 +48,7 @@ def test(args):
     # max_ep_len = 1000           # max timesteps in one episode
     # action_std = 0.1            # set same std for action distribution which was used while saving
 
-    render = True                 # render environment on screen
+    render = args.render          # render environment on screen
     frame_delay = 0               # if required; add delay b/w frames
 
     total_test_episodes = config.total_test_episodes    # total num of testing episodes
