@@ -1,4 +1,4 @@
-# SSRL-PPO
+# PPO-pytorch
 _Wenyuan Zhao_
 
 ## Introduction
