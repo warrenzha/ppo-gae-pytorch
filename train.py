@@ -1,23 +1,18 @@
-"""
-@author: Wenyuan Zhao
-
-Self-supervised Reinforcement Learning
-"""
-
-
 import os
 from distutils.util import strtobool
 import time
+from datetime import datetime
+
 import random
 import numpy as np
 import gym
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
+# from torch.utils.tensorboard import SummaryWriter
 
 from arguments import parse_args
 from config import get_config
-from model import PPO
+from agent import make_ppo_agent
+import utils as utils
 
 
 
@@ -27,6 +22,7 @@ if __name__ == '__main__':
     print(args)
 
     config = get_config(args.env_name, args.seed)
+    
     ################################## set device ##################################
     print("============================================================================================")
     # set device to cpu or cuda
@@ -55,6 +51,9 @@ if __name__ == '__main__':
     save_model_freq = config.save_model_freq                # save model frequency (in num timesteps)
 
     action_std = config.action_std
+    action_std_decay_rate = config.action_std_decay_rate        # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+    min_action_std = config.min_action_std                # minimum action_std (stop decay after action_std <= min_action_std)
+    action_std_decay_freq = config.action_std_decay_freq  # action_std decay frequency (in num timesteps)
     #####################################################
 
     ## Note : print/log frequencies should be > than max_ep_len
@@ -64,6 +63,7 @@ if __name__ == '__main__':
     K_epochs = config.K_epochs                  # update policy for K epochs
     eps_clip = config.eps_clip                  # clip parameter for PPO
     gamma = config.gamma                        # discount factor
+    lam = config.lamda                          # lamda for GAE
 
     lr_actor = config.lr_actor      # learning rate for actor network
     lr_critic = config.lr_critic    # learning rate for critic network
@@ -176,8 +176,18 @@ if __name__ == '__main__':
     ################# training procedure ################
 
     # initialize a PPO agent
-    ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space,
-                    action_std)
+    ppo_agent = make_ppo_agent(
+        obs_shape=state_dim,
+        action_shape=action_dim,
+        args=args,
+        config=config
+    )
+
+    state_norm = utils.Normalization(shape=state_dim)  # Trick 2:state normalization
+    if args.use_reward_norm:  # Trick 3:reward normalization
+        reward_norm = utils.Normalization(shape=1)
+    elif args.use_reward_scaling:  # Trick 4:reward scaling
+        reward_scaling = utils.RewardScaling(shape=1, gamma=gamma)
 
     # track total training time
     start_time = datetime.now().replace(microsecond=0)
@@ -205,22 +215,44 @@ if __name__ == '__main__':
         state = env.reset()
         current_ep_reward = 0
 
+        if args.use_state_norm:
+            state = state_norm(state)
+        if args.use_reward_scaling:
+            reward_scaling.reset()
+
         for t in range(1, max_ep_len + 1):
 
             # select action with policy
             action = ppo_agent.select_action(state)
-            state, reward, done, _ = env.step(action)
+            next_state, reward, done, _ = env.step(action)
+
+            if args.use_state_norm:
+                next_state = state_norm(next_state)
+            if args.use_reward_norm:
+                reward = reward_norm(reward)
+            elif args.use_reward_scaling:
+                reward = reward_scaling(reward)
+
+            if done and t != max_ep_len:
+                dw = True
+            else:
+                dw = False
 
             # saving reward and is_terminals
+            # ppo_agent.append_values(state, next_state)
+            ppo_agent.append_next_state(next_state)
             ppo_agent.buffer.rewards.append(reward)
             ppo_agent.buffer.is_terminals.append(done)
+            ppo_agent.buffer.dw.append(dw)
+            ppo_agent.buffer.count += 1
 
+            state = next_state
             time_step += 1
             current_ep_reward += reward
 
             # update PPO agent
             if time_step % update_timestep == 0:
-                ppo_agent.update()
+                ppo_agent.update(time_step)
 
             # if continuous action space; then decay action std of ouput action distribution
             if has_continuous_action_space and time_step % action_std_decay_freq == 0:

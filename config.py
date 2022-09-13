@@ -6,9 +6,15 @@ class config_cartpole:
 
         # environment hyperparameters
         self.has_continuous_action_space = False
+
         self.max_ep_len = 400                        # max timesteps in one episode
-        self.max_training_timesteps = int(1e5)       # break training loop if timeteps > max_training_timesteps
+        self.max_training_timesteps = int(2e5)       # break training loop if timeteps > max_training_timesteps
+
         self.action_std = None
+        self.action_std_decay_rate = None  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+        self.min_action_std = None  # minimum action_std (stop decay after action_std <= min_action_std)
+        self.action_std_decay_freq = None  # action_std decay frequency (in num timesteps)
+
         self.save_model_freq = int(2e4)              # save model frequency (in num timesteps)
 
         ## Note : print/log frequencies should be > than max_ep_len
@@ -19,6 +25,7 @@ class config_cartpole:
         self.K_epochs = 40  # update policy for K epochs
         self.eps_clip = 0.2  # clip parameter for PPO
         self.gamma = 0.99  # discount factor
+        self.lamda = 0.95 # lambda for GAE
 
         self.lr_actor = 0.0003  # learning rate for actor network
         self.lr_critic = 0.001  # learning rate for critic network
@@ -34,9 +41,15 @@ class config_lunarlander:
 
         # environment hyperparameters
         self.has_continuous_action_space = False
+
         self.max_ep_len = 300                        # max timesteps in one episode
         self.max_training_timesteps = int(1e6)       # break training loop if timeteps > max_training_timesteps
+
         self.action_std = None
+        self.action_std_decay_rate = None  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+        self.min_action_std = None  # minimum action_std (stop decay after action_std <= min_action_std)
+        self.action_std_decay_freq = None  # action_std decay frequency (in num timesteps)
+
         self.save_model_freq = int(5e4)              # save model frequency (in num timesteps)
 
         ## Note : print/log frequencies should be > than max_ep_len
@@ -47,6 +60,7 @@ class config_lunarlander:
         self.K_epochs = 30  # update policy for K epochs
         self.eps_clip = 0.2  # clip parameter for PPO
         self.gamma = 0.99  # discount factor
+        self.lamda = 0.95 # lambda for GAE
 
         self.lr_actor = 0.0003  # learning rate for actor network
         self.lr_critic = 0.001  # learning rate for critic network
@@ -81,6 +95,47 @@ class config_bipedalwalker:
         self.K_epochs = 80  # update policy for K epochs
         self.eps_clip = 0.2  # clip parameter for PPO
         self.gamma = 0.99  # discount factor
+        self.lamda = 0.95 # lambda for GAE
+
+        self.lr_actor = 0.0003  # learning rate for actor network
+        self.lr_critic = 0.001  # learning rate for critic network
+
+        self.random_seed = seed  # set random seed if required (0 = no random seed)
+
+        self.total_test_episodes = 10  # total num of testing episodes
+
+class config_cognitiveradio:
+    def __init__(self, seed):
+        self.env_name="Cognitive-Radio"
+
+        # environment hyperparameters
+        self.has_continuous_action_space = False
+        self.startSim = True
+        self.port = 5555
+        self.simTime = 5
+        self.stepTime = 0.1
+        self.simArgs = {"--simTime": self.simTime, "--testArg": 123}
+        self.debug = False
+
+        self.max_ep_len = 100                        # max timesteps in one episode
+        self.max_training_timesteps = int(1e5)       # break training loop if timeteps > max_training_timesteps
+
+        self.action_std = None  # starting std for action distribution (Multivariate Normal)
+        self.action_std_decay_rate = None  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+        self.min_action_std = None  # minimum action_std (stop decay after action_std <= min_action_std)
+        self.action_std_decay_freq = None  # action_std decay frequency (in num timesteps)
+
+        self.save_model_freq = int(1e4)              # save model frequency (in num timesteps)
+
+        ## Note : print/log frequencies should be > than max_ep_len
+
+        # PPO hyperparameters
+        self.update_timestep = self.max_ep_len * 4  # update policy every n timesteps
+
+        self.K_epochs = 80  # update policy for K epochs
+        self.eps_clip = 0.2  # clip parameter for PPO
+        self.gamma = 0.99  # discount factor
+        self.lamda = 0.95 # lambda for GAE
 
         self.lr_actor = 0.0003  # learning rate for actor network
         self.lr_critic = 0.001  # learning rate for critic network
@@ -98,3 +153,5 @@ def get_config(env_name, seed=0):
         return config_lunarlander(seed)
     elif env_name == 'bipedalwalker':
         return config_bipedalwalker(seed)
+    elif env_name == 'cognitiveradio':
+        return config_cognitiveradio(seed)

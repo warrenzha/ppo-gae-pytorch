@@ -3,7 +3,7 @@ _Wenyuan Zhao_
 
 ## Introduction
 
-This repository provides a PyTorch implementation of Proximal Policy Optimization (PPO) with clipped objective for OpenAI gym environments. It can still be used for complex environments but may require some hyperparameter-tuning or changes in the code.
+This repository provides a PyTorch implementation of Proximal Policy Optimization (PPO) with clipped objective and GAE for OpenAI gym environments. It can still be used for complex environments but may require some hyperparameter-tuning or changes in the code.
 
 A concise explaination of PPO algorithm can be found [here](https://stackoverflow.com/questions/46422845/what-is-the-way-to-understand-proximal-policy-optimization-algorithm-in-rl).
 
@@ -11,13 +11,13 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 ## Usage
 
 - To train a new network : example - train PPO on CartPole domain   
-`python train.py --env-name cartpole --seed 0 --pretrained 0`
+`python train.py --env-name cartpole --seed 1 --pretrained 1 --use_gae`
 - To test a preTrained network : example - test PPO on CartPole domain   
-`python test.py --env-name cartpole --seed 0 --pretrained 0`
+`python test.py --env-name cartpole --seed 1 --pretrained 1`
 - All parameters and hyperparamters to control training / testing are in `config.py` file.
 
 We provide a pre-trained model that can be used for evaluation. 
-Call `python test.py --env-name cartpole --pretrained 1`
+Call `python test.py --env-name cartpole`
 
 #### Note :
   - Device is set to GPU as default if CUDA is available.

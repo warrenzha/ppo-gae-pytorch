@@ -12,12 +12,11 @@ import gym
 
 from arguments import parse_args
 from config import get_config
-from model import PPO
-
+from agent import make_ppo_agent
 
 
 #################################### Testing ###################################
-def test(args):
+def evaluate(args):
     print("============================================================================================")
 
     ################## hyperparameters ##################
@@ -56,6 +55,7 @@ def test(args):
     K_epochs = config.K_epochs              # update policy for K epochs
     eps_clip = config.eps_clip              # clip parameter for PPO
     gamma = config.gamma                    # discount factor
+    lam = config.lamda                      # lambda for GAE
 
     lr_actor = config.lr_actor              # learning rate for actor
     lr_critic = config.lr_critic            # learning rate for critic
@@ -74,7 +74,12 @@ def test(args):
         action_dim = env.action_space.n
 
     # initialize a PPO agent
-    ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space, action_std)
+    ppo_agent = make_ppo_agent(
+        obs_shape=state_dim,
+        action_shape=action_dim,
+        args=args,
+        config=config
+    )
 
     # preTrained weights directory
 
@@ -129,4 +134,4 @@ if __name__ == '__main__':
     args = parse_args()
     print(args)
 
-    test(args)
+    evaluate(args)
