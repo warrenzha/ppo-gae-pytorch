@@ -22,3 +22,19 @@ Call `python test.py --env-name cartpole`
 #### Note :
   - Device is set to GPU as default if CUDA is available.
   - if the environment runs on CPU, use CPU as device for faster training. Box-2d and Roboschool run on CPU and training them on GPU device will be significantly slower because the data will be moved between CPU and GPU often.
+
+
+## Citation
+
+If you find our work useful in your research, please consider citing this repository as follows:
+
+```
+@misc{ppo-pytorch,
+    author = {Zhao, Wenyuan},
+    title = {PyTorch implementation of Proximal Policy Optimization (PPO)},
+    year = {2022},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://github.com/wyzhao030/ppo-pytorch}},
+}
+```
