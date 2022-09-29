@@ -33,7 +33,7 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
       --pretrained 1
   ```
 
-- All parameters and hyperparamters to control training / testing are in `config.py` file.
+- All parameters and hyperparamters to control training / testing are in `env/config.py` file.
 
 * We provide a pre-trained model that can be used for evaluation: 
 
@@ -47,6 +47,14 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 #### Note :
   - Device is set to GPU as default if CUDA is available.
   - if the environment runs on CPU, use CPU as device for faster training. Box-2d and Roboschool run on CPU and training them on GPU device will be significantly slower because the data will be moved between CPU and GPU often.
+
+## Experimental Results
+
+![cartpole](PPO_figs/CartPole-v1/PPO_CartPole-v1_fig_1.png)
+
+![lunarlander](PPO_figs/LunarLander-v2/PPO_LunarLander-v2_fig_1.png)
+
+![bipedalwalker](PPO_figs/BipedalWalker-v3/PPO_BipedalWalker-v3_fig_1.png)
 
 
 ## Citation
