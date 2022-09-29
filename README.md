@@ -10,14 +10,39 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 
 ## Usage
 
-- To train a new network : example - train PPO on CartPole domain   
-`python train.py --env-name cartpole --seed 1 --pretrained 1 --use_gae`
-- To test a preTrained network : example - test PPO on CartPole domain   
-`python test.py --env-name cartpole --seed 1 --pretrained 1`
+- To train a new network : example - train PPO on *CartPole* domain   
+
+  ```
+  python3 train.py \
+      --env-name cartpole \
+      --seed 1 \
+      --pretrained 1 \
+      --max_train_steps 5e4 \
+      --save_freq 1e4 \
+      --batch_size 2048 \
+      --mini_batch_size 64 \
+      --K_epochs 40
+  ```
+
+- To test a preTrained network : example - test PPO on *CartPole* domain 
+
+  ```
+  python3 test.py \
+      --env-name cartpole \
+      --seed 1 \
+      --pretrained 1
+  ```
+
 - All parameters and hyperparamters to control training / testing are in `config.py` file.
 
-We provide a pre-trained model that can be used for evaluation. 
-Call `python test.py --env-name cartpole`
+* We provide a pre-trained model that can be used for evaluation: 
+
+  ```
+  python3 test.py \
+      --env-name cartpole \
+      --seed 0 \
+      --pretrained 0
+  ```
 
 #### Note :
   - Device is set to GPU as default if CUDA is available.

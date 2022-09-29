@@ -1,92 +1,88 @@
+"""
+@author: Wenyuan Zhao
+
+Self-supervised Reinforcement Learning
+"""
+
+
 import os
 from distutils.util import strtobool
 import time
+import random
 from datetime import datetime
 
-import random
 import numpy as np
 import gym
 import torch
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from arguments import parse_args
-from config import get_config
-from agent import make_ppo_agent
+from env.config import get_config
+from agent.ppo_discrete import make_ppo_discrete
+from agent.ppo_continous import make_ppo_continous
 import utils as utils
 
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    args = parse_args()
-    print(args)
+def evaluate_policy(args, env, agent, state_norm):
+    times = 3
+    evaluate_reward = 0
+    for _ in range(times):
+        s = env.reset()
+        if args.use_state_norm:  # During the evaluating,update=False
+            s = state_norm(s, update=False)
+        done = False
+        episode_reward = 0
+        while not done:
+            a = agent.evaluate(s)  # We use the deterministic policy during the evaluating
+            if args.has_continuous_action_space:
+                if args.policy_dist == "Beta":
+                    action = 2 * (a - 0.5) * args.max_action  # [0,1]->[-max,max]
+                else:
+                    action = a
+            else:
+                action = a
+            s_, r, done, _ = env.step(action)
+            if args.use_state_norm:
+                s_ = state_norm(s_, update=False)
+            episode_reward += r
+            s = s_
+        evaluate_reward += episode_reward
 
+    return evaluate_reward / times
+
+
+def train(args, env_name, seed, number=1):
     config = get_config(args.env_name, args.seed)
-    
-    ################################## set device ##################################
-    print("============================================================================================")
-    # set device to cpu or cuda
-    device = torch.device('cpu')
-    if (torch.cuda.is_available()):
-        device = torch.device('cuda:0')
-        torch.cuda.empty_cache()
-        print("Device set to : " + str(torch.cuda.get_device_name(device)))
-    else:
-        print("Device set to : cpu")
-    print("============================================================================================")
-
-
-    print("============================================================================================")
-
-    ####### initialize environment hyperparameters ######
-    env_name = config.env_name
-
-    has_continuous_action_space = config.has_continuous_action_space
-
-    max_ep_len = config.max_ep_len                               # max timesteps in one episode
-    max_training_timesteps = config.max_training_timesteps       # break training loop if timeteps > max_training_timesteps
-
-    print_freq = max_ep_len * 4                             # print avg reward in the interval (in num timesteps)
-    log_freq = max_ep_len * 2                               # log avg reward in the interval (in num timesteps)
-    save_model_freq = config.save_model_freq                # save model frequency (in num timesteps)
-
-    action_std = config.action_std
-    action_std_decay_rate = config.action_std_decay_rate        # linearly decay action_std (action_std = action_std - action_std_decay_rate)
-    min_action_std = config.min_action_std                # minimum action_std (stop decay after action_std <= min_action_std)
-    action_std_decay_freq = config.action_std_decay_freq  # action_std decay frequency (in num timesteps)
-    #####################################################
-
-    ## Note : print/log frequencies should be > than max_ep_len
-
-    ################ PPO hyperparameters ################
-    update_timestep = config.update_timestep    # update policy every n timesteps
-    K_epochs = config.K_epochs                  # update policy for K epochs
-    eps_clip = config.eps_clip                  # clip parameter for PPO
-    gamma = config.gamma                        # discount factor
-    lam = config.lamda                          # lamda for GAE
-
-    lr_actor = config.lr_actor      # learning rate for actor network
-    lr_critic = config.lr_critic    # learning rate for critic network
-
-    random_seed = config.random_seed  # set random seed if required (0 = no random seed)
-    #####################################################
-
-    print("training environment name : " + env_name)
 
     env = gym.make(env_name)
+    env_evaluate = gym.make(env_name)  # When evaluating the policy, we need to rebuild an environment
+
+    # Set random seed
+    env.seed(seed)
+    env.action_space.seed(seed)
+    env_evaluate.seed(seed)
+    env_evaluate.action_space.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     # state space dimension
-    state_dim = env.observation_space.shape[0]
+    args.state_dim = env.observation_space.shape[0]
 
+    args.has_continuous_action_space = config.has_continuous_action_space
     # action space dimension
-    if has_continuous_action_space:
-        action_dim = env.action_space.shape[0]
+    if args.has_continuous_action_space:
+        args.action_dim = env.action_space.shape[0]
+        args.max_action = float(env.action_space.high[0])
     else:
-        action_dim = env.action_space.n
+        args.action_dim = env.action_space.n
 
-    ###################### logging ######################
+    args.max_episode_steps = env._max_episode_steps  # Maximum number of steps per episode
+    print_freq = args.max_episode_steps * 5  # print avg reward in the interval (in num timesteps)
+    log_freq = args.max_episode_steps * 2  # log avg reward in the interval (in num timesteps)
+    save_model_freq = args.save_freq  # save model frequency (in num timesteps)
 
-    #### log files for multiple runs are NOT overwritten
+    #### log files for multiple runs ###################
     log_dir = "PPO_logs"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -95,8 +91,7 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    #### get number of log files in log directory
-    run_num = 0
+    #### get number of log files in log directory ######
     current_num_files = next(os.walk(log_dir))[2]
     run_num = len(current_num_files)
 
@@ -105,6 +100,7 @@ if __name__ == '__main__':
 
     print("current logging run number for " + env_name + " : ", run_num)
     print("logging at : " + log_f_name)
+    print("============================================================================================")
     #####################################################
 
     ################### checkpointing ###################
@@ -118,86 +114,38 @@ if __name__ == '__main__':
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    checkpoint_path = directory + "PPO_{}_{}_{}.pth".format(env_name, random_seed, run_num_pretrained)
-    print("save checkpoint path : " + checkpoint_path)
-    #####################################################
-
-    ############# print all hyperparameters #############
-
-    print("--------------------------------------------------------------------------------------------")
-
-    print("max training timesteps : ", max_training_timesteps)
-    print("max timesteps per episode : ", max_ep_len)
-
-    print("model saving frequency : " + str(save_model_freq) + " timesteps")
-    print("log frequency : " + str(log_freq) + " timesteps")
-    print("printing average reward over episodes in last : " + str(print_freq) + " timesteps")
-
-    print("--------------------------------------------------------------------------------------------")
-
-    print("state space dimension : ", state_dim)
-    print("action space dimension : ", action_dim)
-
-    print("--------------------------------------------------------------------------------------------")
-
-    if has_continuous_action_space:
-        print("Initializing a continuous action space policy")
-        print("--------------------------------------------------------------------------------------------")
-        print("starting std of action distribution : ", action_std)
-        print("decay rate of std of action distribution : ", action_std_decay_rate)
-        print("minimum std of action distribution : ", min_action_std)
-        print("decay frequency of std of action distribution : " + str(action_std_decay_freq) + " timesteps")
-
-    else:
-        print("Initializing a discrete action space policy")
-
-    print("--------------------------------------------------------------------------------------------")
-
-    print("PPO update frequency : " + str(update_timestep) + " timesteps")
-    print("PPO K epochs : ", K_epochs)
-    print("PPO epsilon clip : ", eps_clip)
-    print("discount factor (gamma) : ", gamma)
-
-    print("--------------------------------------------------------------------------------------------")
-
-    print("optimizer learning rate actor : ", lr_actor)
-    print("optimizer learning rate critic : ", lr_critic)
-
-    if random_seed:
-        print("--------------------------------------------------------------------------------------------")
-        print("setting random seed to ", random_seed)
-        torch.manual_seed(random_seed)
-        env.seed(random_seed)
-        np.random.seed(random_seed)
-    #####################################################
-
+    checkpoint_path_actor = directory + "PPO_Actor_{}_{}_{}.pth".format(env_name, seed, run_num_pretrained)
+    checkpoint_path_critic = directory + "PPO_Critic_{}_{}_{}.pth".format(env_name, seed, run_num_pretrained)
+    print("save actor checkpoint path : " + checkpoint_path_actor)
+    print("save critic checkpoint path : " + checkpoint_path_critic)
     print("============================================================================================")
-
-    ################# training procedure ################
-
-    # initialize a PPO agent
-    ppo_agent = make_ppo_agent(
-        obs_shape=state_dim,
-        action_shape=action_dim,
-        args=args,
-        config=config
-    )
-
-    state_norm = utils.Normalization(shape=state_dim)  # Trick 2:state normalization
-    if args.use_reward_norm:  # Trick 3:reward normalization
-        reward_norm = utils.Normalization(shape=1)
-    elif args.use_reward_scaling:  # Trick 4:reward scaling
-        reward_scaling = utils.RewardScaling(shape=1, gamma=gamma)
+    #####################################################
 
     # track total training time
     start_time = datetime.now().replace(microsecond=0)
     print("Started training at (GMT) : ", start_time)
-
     print("============================================================================================")
 
     # logging file
     log_f = open(log_f_name, "w+")
     log_f.write('episode,timestep,reward\n')
+
+    evaluate_num = 0  # Record the number of evaluations
+    evaluate_rewards = []  # Record the rewards during the evaluating
+    total_steps = 0  # Record the total steps during the training
+
+    #### Prepare agent and buffer ##############################
+    replay_buffer = utils.ReplayBuffer(args)
+    if args.has_continuous_action_space:
+        agent = make_ppo_continous(args)
+    else:
+        agent = make_ppo_discrete(args)
+    
+    state_norm = utils.Normalization(shape=args.state_dim)  # Trick 2:state normalization
+    if args.use_reward_norm:  # Trick 3:reward normalization
+        reward_norm = utils.Normalization(shape=1)
+    elif args.use_reward_scaling:  # Trick 4:reward scaling
+        reward_scaling = utils.RewardScaling(shape=1, gamma=args.gamma)
 
     # printing and logging variables
     print_running_reward = 0
@@ -209,54 +157,57 @@ if __name__ == '__main__':
     time_step = 0
     i_episode = 0
 
-    # training loop
-    while time_step <= max_training_timesteps:
-
-        state = env.reset()
-        current_ep_reward = 0
-
+    ################### training #########################
+    while total_steps < args.max_train_steps:
+        s = env.reset()
         if args.use_state_norm:
-            state = state_norm(state)
+            s = state_norm(s)
         if args.use_reward_scaling:
             reward_scaling.reset()
 
-        for t in range(1, max_ep_len + 1):
+        episode_steps = 0
+        current_ep_reward = 0
+        done = False
 
-            # select action with policy
-            action = ppo_agent.select_action(state)
-            next_state, reward, done, _ = env.step(action)
+        while not done:
+            episode_steps += 1
+
+            a, a_logprob = agent.choose_action(s)  # Action and the corresponding log probability
+            if args.has_continuous_action_space:
+                if args.policy_dist == "Beta":
+                    action = 2 * (a - 0.5) * args.max_action  # [0,1]->[-max,max]
+                else:
+                    action = a
+            else:
+                action = a
+            s_, r, done, _ = env.step(action)
+
+            current_ep_reward += r
+            time_step += 1
 
             if args.use_state_norm:
-                next_state = state_norm(next_state)
+                s_ = state_norm(s_)
             if args.use_reward_norm:
-                reward = reward_norm(reward)
+                r = reward_norm(r)
             elif args.use_reward_scaling:
-                reward = reward_scaling(reward)
+                r = reward_scaling(r)
 
-            if done and t != max_ep_len:
+            # When dead or win or reaching the max_episode_steps, done will be Ture, we need to distinguish them;
+            # dw means dead or win,there is no next state s';
+            # but when reaching the max_episode_steps,there is a next state s' actually.
+            if done and episode_steps != args.max_episode_steps:
                 dw = True
             else:
                 dw = False
 
-            # saving reward and is_terminals
-            # ppo_agent.append_values(state, next_state)
-            ppo_agent.append_next_state(next_state)
-            ppo_agent.buffer.rewards.append(reward)
-            ppo_agent.buffer.is_terminals.append(done)
-            ppo_agent.buffer.dw.append(dw)
-            ppo_agent.buffer.count += 1
+            replay_buffer.store(s, a, a_logprob, r, s_, dw, done)
+            s = s_
+            total_steps += 1
 
-            state = next_state
-            time_step += 1
-            current_ep_reward += reward
-
-            # update PPO agent
-            if time_step % update_timestep == 0:
-                ppo_agent.update(time_step)
-
-            # if continuous action space; then decay action std of ouput action distribution
-            if has_continuous_action_space and time_step % action_std_decay_freq == 0:
-                ppo_agent.decay_action_std(action_std_decay_rate, min_action_std)
+            # When the number of transitions in buffer reaches batch_size,then update
+            if replay_buffer.count == args.batch_size:
+                agent.update(replay_buffer, total_steps)
+                replay_buffer.count = 0
 
             # log in logging file
             if time_step % log_freq == 0:
@@ -285,15 +236,12 @@ if __name__ == '__main__':
             # save model weights
             if time_step % save_model_freq == 0:
                 print("--------------------------------------------------------------------------------------------")
-                print("saving model at : " + checkpoint_path)
-                ppo_agent.save(checkpoint_path)
+                print("saving actor model at : " + checkpoint_path_actor)
+                print("saving critic model at : " + checkpoint_path_critic)
+                agent.save(checkpoint_path_actor, checkpoint_path_critic)
                 print("model saved")
                 print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
                 print("--------------------------------------------------------------------------------------------")
-
-            # break; if the episode is over
-            if done:
-                break
 
         print_running_reward += current_ep_reward
         print_running_episodes += 1
@@ -315,5 +263,15 @@ if __name__ == '__main__':
     print("============================================================================================")
 
 
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    args = parse_args()
+    print(args)
 
+    config = get_config(args.env_name, args.seed)
 
+    train(
+        args=args,
+        env_name=config.env_name,
+        seed=args.seed,
+    )

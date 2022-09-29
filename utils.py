@@ -3,48 +3,121 @@ import torch
 import torch.nn as nn
 
 
+################################## set device ##################################
+print("============================================================================================")
+# set device to cpu or cuda
+device = torch.device('cpu')
+if(torch.cuda.is_available()): 
+    device = torch.device('cuda:0') 
+    torch.cuda.empty_cache()
+    print("Device set to : " + str(torch.cuda.get_device_name(device)))
+else:
+    print("Device set to : cpu")
+print("============================================================================================")
 
-def layer_init(layer, gain=1.0, bias_const=0.0):
-    """
-    PPO requires orthogonal initialization.
 
-    Args:
-        layer:
-        std:
-        bias_const:
+def make_dir(dir_path):
+    try:
+        os.makedirs(dir_path)
+    except OSError:
+        pass
+    return dir_path
 
-    Returns:
-        layer:
-    """
+
+def orthogonal_init(layer, gain=1.0):
+    """Orthogonal initialization."""
     nn.init.orthogonal_(layer.weight, gain=gain)
-    nn.init.constant_(layer.bias, bias_const)
-    return layer
+    nn.init.constant_(layer.bias, 0)
+
+
+# Another version of replay buffer
+class ReplayBuffer:
+    def __init__(self, args):
+        self.capacity = args.batch_size
+        self.has_continuous_action_space = args.has_continuous_action_space
+
+        # the proprioceptive obs is stored as float32, pixels obs as uint8
+        # obs_dtype = np.float32 if len(obs_shape) == 1 else np.uint8
+
+        self.s = np.empty((args.batch_size, args.state_dim), dtype=np.float32)
+        if args.has_continuous_action_space:
+            self.a = np.empty((args.batch_size, args.action_dim), dtype=np.float32)
+            self.a_logprob = np.empty((args.batch_size, args.action_dim), dtype=np.float32)
+        else:
+            self.a = np.empty((args.batch_size, 1), dtype=np.float32)
+            self.a_logprob = np.empty((args.batch_size, 1), dtype=np.float32)
+        self.r = np.empty((args.batch_size, 1), dtype=np.float32)
+        self.s_ = np.empty((args.batch_size, args.state_dim), dtype=np.float32)
+        self.dw = np.empty((args.batch_size, 1), dtype=np.float32)
+        self.done = np.empty((args.batch_size, 1), dtype=np.float32)
+
+        self.count = 0
+
+    def store(self, s, a, a_logprob, r, s_, dw, done):
+        np.copyto(self.s[self.count], s)
+        np.copyto(self.a[self.count], a)
+        np.copyto(self.a_logprob[self.count], a_logprob)
+        np.copyto(self.r[self.count], r)
+        np.copyto(self.s_[self.count], s_)
+        np.copyto(self.dw[self.count], dw)
+        np.copyto(self.done[self.count], done)
+        self.count += 1
+
+    def numpy_to_tensor(self):
+        s = torch.as_tensor(self.s).float().to(device)
+        if self.has_continuous_action_space:
+            a = torch.as_tensor(self.a).float().to(device)
+        else:
+            a = torch.as_tensor(self.a).long().to(device)   # In discrete action space, 'a' needs to be torch.long
+        a_logprob = torch.as_tensor(self.a_logprob).float().to(device)
+        r = torch.as_tensor(self.r).float().to(device)
+        s_ = torch.as_tensor(self.s_).float().to(device)
+        dw = torch.as_tensor(self.dw).float().to(device)
+        done = torch.as_tensor(self.done).float().to(device)
+
+        return s, a, a_logprob, r, s_, dw, done
 
 
 class RolloutBuffer:
-    def __init__(self):
-        self.actions = []
-        self.states = []
-        self.next_states = []
-        self.logprobs = []
-        self.rewards = []
-        self.is_terminals = []
-        self.dw = []
-        self.values = []
-        self.next_values = []
+    def __init__(self, args):
+        self.has_continuous_action_space = args.has_continuous_action_space
+
+        self.s = np.zeros((args.batch_size, args.state_dim))
+        if args.has_continuous_action_space:
+            self.a = np.zeros((args.batch_size, args.action_dim))
+            self.a_logprob = np.zeros((args.batch_size, args.action_dim))
+        else:
+            self.a = np.zeros((args.batch_size, 1))
+            self.a_logprob = np.zeros((args.batch_size, 1))
+        self.r = np.zeros((args.batch_size, 1))
+        self.s_ = np.zeros((args.batch_size, args.state_dim))
+        self.dw = np.zeros((args.batch_size, 1))
+        self.done = np.zeros((args.batch_size, 1))
         self.count = 0
 
-    def clear(self):
-        del self.actions[:]
-        del self.states[:]
-        del self.next_states[:]
-        del self.logprobs[:]
-        del self.rewards[:]
-        del self.is_terminals[:]
-        del self.dw[:]
-        del self.values[:]
-        del self.next_values[:]
-        self.count = 0
+    def store(self, s, a, a_logprob, r, s_, dw, done):
+        self.s[self.count] = s
+        self.a[self.count] = a
+        self.a_logprob[self.count] = a_logprob
+        self.r[self.count] = r
+        self.s_[self.count] = s_
+        self.dw[self.count] = dw
+        self.done[self.count] = done
+        self.count += 1
+
+    def numpy_to_tensor(self):
+        s = torch.tensor(self.s, dtype=torch.float)
+        if self.has_continuous_action_space:
+            a = torch.tensor(self.a, dtype=torch.float)
+        else:
+            a = torch.tensor(self.a, dtype=torch.long)  # In discrete action space, 'a' needs to be torch.long
+        a_logprob = torch.tensor(self.a_logprob, dtype=torch.float)
+        r = torch.tensor(self.r, dtype=torch.float)
+        s_ = torch.tensor(self.s_, dtype=torch.float)
+        dw = torch.tensor(self.dw, dtype=torch.float)
+        done = torch.tensor(self.done, dtype=torch.float)
+
+        return s, a, a_logprob, r, s_, dw, done
 
 
 class RunningMeanStd:

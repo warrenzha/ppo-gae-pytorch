@@ -1,18 +1,19 @@
 import os
 import glob
 import time
+import random
 from datetime import datetime
+from distutils.util import strtobool
 
 import torch
 import numpy as np
-
 import gym
-# import roboschool
-# import pybullet
 
 from arguments import parse_args
-from config import get_config
-from agent import make_ppo_agent
+from env.config import get_config
+from agent.ppo_discrete import make_ppo_discrete
+from agent.ppo_continous import make_ppo_continous
+import utils as utils
 
 
 #################################### Testing ###################################
@@ -23,74 +24,46 @@ def evaluate(args):
     config = get_config(args.env_name, args.seed)
 
     env_name = config.env_name
-    has_continuous_action_space = config.has_continuous_action_space
+    args.has_continuous_action_space = config.has_continuous_action_space
     max_ep_len = config.max_ep_len
     action_std = config.action_std
-
-    # env_name = "LunarLander-v2"
-    # has_continuous_action_space = False
-    # max_ep_len = 300
-    # action_std = None
-
-    # env_name = "BipedalWalker-v2"
-    # has_continuous_action_space = True
-    # max_ep_len = 1500           # max timesteps in one episode
-    # action_std = 0.1            # set same std for action distribution which was used while saving
-
-    # env_name = "HalfCheetah-v2"
-    # has_continuous_action_space = True
-    # max_ep_len = 1000  # max timesteps in one episode
-    # action_std = 0.1  # set same std for action distribution which was used while saving
-
-    # env_name = "RoboschoolWalker2d-v1"
-    # has_continuous_action_space = True
-    # max_ep_len = 1000           # max timesteps in one episode
-    # action_std = 0.1            # set same std for action distribution which was used while saving
 
     render = args.render          # render environment on screen
     frame_delay = 0               # if required; add delay b/w frames
 
+    random_seed = config.random_seed  #### set this to load a particular checkpoint trained on random seed
+    run_num_pretrained = args.pretrained  #### set this to load a particular checkpoint num
     total_test_episodes = config.total_test_episodes    # total num of testing episodes
-
-    K_epochs = config.K_epochs              # update policy for K epochs
-    eps_clip = config.eps_clip              # clip parameter for PPO
-    gamma = config.gamma                    # discount factor
-    lam = config.lamda                      # lambda for GAE
-
-    lr_actor = config.lr_actor              # learning rate for actor
-    lr_critic = config.lr_critic            # learning rate for critic
-
     #####################################################
 
     env = gym.make(env_name)
 
     # state space dimension
-    state_dim = env.observation_space.shape[0]
+    args.state_dim = env.observation_space.shape[0]
+
+    has_continuous_action_space = config.has_continuous_action_space
 
     # action space dimension
-    if has_continuous_action_space:
-        action_dim = env.action_space.shape[0]
+    if args.has_continuous_action_space:
+        args.action_dim = env.action_space.shape[0]
+        args.max_action = float(env.action_space.high[0])
     else:
-        action_dim = env.action_space.n
+        args.action_dim = env.action_space.n
 
     # initialize a PPO agent
-    ppo_agent = make_ppo_agent(
-        obs_shape=state_dim,
-        action_shape=action_dim,
-        args=args,
-        config=config
-    )
+    if args.has_continuous_action_space:
+        ppo_agent = make_ppo_continous(args)
+    else:
+        ppo_agent = make_ppo_discrete(args)
+    state_norm = utils.Normalization(shape=args.state_dim)  # Trick 2:state normalization
 
     # preTrained weights directory
-
-    random_seed = config.random_seed             #### set this to load a particular checkpoint trained on random seed
-    run_num_pretrained = args.pretrained      #### set this to load a particular checkpoint num
-
     directory = "PPO_preTrained" + '/' + env_name + '/'
-    checkpoint_path = directory + "PPO_{}_{}_{}.pth".format(env_name, random_seed, run_num_pretrained)
-    print("loading network from : " + checkpoint_path)
+    checkpoint_path_actor = directory + "PPO_Actor_{}_{}_{}.pth".format(env_name, random_seed, run_num_pretrained)
+    checkpoint_path_critic = directory + "PPO_Critic_{}_{}_{}.pth".format(env_name, random_seed, run_num_pretrained)
+    print("loading network from : " + checkpoint_path_actor + " & " + checkpoint_path_critic)
 
-    ppo_agent.load(checkpoint_path)
+    ppo_agent.load(checkpoint_path_actor, checkpoint_path_critic)
 
     print("--------------------------------------------------------------------------------------------")
 
@@ -98,26 +71,27 @@ def evaluate(args):
 
     for ep in range(1, total_test_episodes+1):
         ep_reward = 0
-        state = env.reset()
+        s = env.reset()
+        if args.use_state_norm:  # During the evaluating,update=False
+            s = state_norm(s, update=False)
+        done = False
 
-        for t in range(1, max_ep_len+1):
-            action = ppo_agent.select_action(state)
-            state, reward, done, _ = env.step(action)
-            ep_reward += reward
+        while not done:
+            a = ppo_agent.evaluate(s)  # We use the deterministic policy during the evaluating
+            s_, r, done, _ = env.step(a)
+
+            if args.use_state_norm:
+                s_ = state_norm(s_, update=False)
+
+            ep_reward += r
+            s = s_
 
             if render:
                 env.render()
                 time.sleep(frame_delay)
 
-            if done:
-                break
-
-        # clear buffer
-        ppo_agent.buffer.clear()
-
         test_running_reward +=  ep_reward
         print('Episode: {} \t\t Reward: {}'.format(ep, round(ep_reward, 2)))
-        ep_reward = 0
 
     env.close()
 

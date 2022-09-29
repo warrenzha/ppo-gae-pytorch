@@ -1,0 +1,23 @@
+name: ppo
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pytorch
+  - torchvision
+  - cudatoolkit=10.2
+  - gym
+  - absl-py
+  - pyparsing
+  - pip
+  - pip:
+    - pillow==6.2.0
+    - termcolor
+    - tb-nightly
+    - imageio
+    - imageio-ffmpeg
+    - opencv-python
+    - xmltodict
+    - scikit-image
+    - seaborn
+    - tqdm
