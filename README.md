@@ -68,6 +68,6 @@ If you find our work useful in your research, please consider citing this reposi
     year = {2022},
     publisher = {GitHub},
     journal = {GitHub repository},
-    howpublished = {\url{https://github.com/wyzhao030/ppo-pytorch}},
+    howpublished = {\url{https://github.com/warrenzha/ppo-pytorch}},
 }
 ```
