@@ -6,29 +6,25 @@ Self-supervised Reinforcement Learning
 
 
 import os
-from distutils.util import strtobool
-import time
-import random
 from datetime import datetime
 
 import numpy as np
 import gym
 import torch
-from torch.utils.tensorboard import SummaryWriter
+from agent.ppo_discrete import make_ppo_discrete
+from agent.ppo_continous import make_ppo_continous
 
 from arguments import parse_args
 from env.config import get_config
-from agent.ppo_discrete import make_ppo_discrete
-from agent.ppo_continous import make_ppo_continous
 import utils as utils
 
 
 
-def evaluate_policy(args, env, agent, state_norm):
+def evaluate_policy(args, env, agent, eval_seed, state_norm):
     times = 3
     evaluate_reward = 0
     for _ in range(times):
-        s = env.reset()
+        s = env.reset(seed=eval_seed)
         if args.use_state_norm:  # During the evaluating,update=False
             s = state_norm(s, update=False)
         done = False
@@ -59,9 +55,7 @@ def train(args, env_name, seed, number=1):
     env_evaluate = gym.make(env_name)  # When evaluating the policy, we need to rebuild an environment
 
     # Set random seed
-    env.seed(seed)
     env.action_space.seed(seed)
-    env_evaluate.seed(seed)
     env_evaluate.action_space.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -159,7 +153,7 @@ def train(args, env_name, seed, number=1):
 
     ################### training #########################
     while total_steps < args.max_train_steps:
-        s = env.reset()
+        s, info = env.reset(seed=seed)
         if args.use_state_norm:
             s = state_norm(s)
         if args.use_reward_scaling:
@@ -180,7 +174,8 @@ def train(args, env_name, seed, number=1):
                     action = a
             else:
                 action = a
-            s_, r, done, _ = env.step(action)
+            s_, r, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
 
             current_ep_reward += r
             time_step += 1

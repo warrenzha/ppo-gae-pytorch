@@ -12,7 +12,7 @@ import utils
 # set device to cpu or cuda
 device = torch.device('cpu')
 if(torch.cuda.is_available()): 
-    device = torch.device('cuda:0') 
+    device = torch.device('cuda')
     torch.cuda.empty_cache()
 
 

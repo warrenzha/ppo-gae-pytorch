@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig authType="PASSWORD" host="xyzhang-lab-server.ucsd.edu" id="cfafc2fc-84b1-4648-833e-07c3d4caa72c" port="22" nameFormat="DESCRIPTIVE" username="wenyuanzhao" useOpenSSHConfig="true" />
-    </configs>
-  </component>
-</project>

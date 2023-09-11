@@ -14,7 +14,7 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 
   ```
   python3 train.py \
-      --env-name cartpole \
+      --env_name cartpole \
       --seed 1 \
       --pretrained 1 \
       --max_train_steps 5e4 \
@@ -24,11 +24,11 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
       --K_epochs 40
   ```
 
-- To test a preTrained network : example - test PPO on *CartPole* domain 
+- To evaluate a preTrained network : example - evaluate PPO in *CartPole* domain 
 
   ```
-  python3 test.py \
-      --env-name cartpole \
+  python3 eval.py \
+      --env_name cartpole \
       --seed 1 \
       --pretrained 1
   ```
@@ -38,8 +38,8 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 * We provide a pre-trained model that can be used for evaluation: 
 
   ```
-  python3 test.py \
-      --env-name cartpole \
+  python3 eval.py \
+      --env_name cartpole \
       --seed 0 \
       --pretrained 0
   ```

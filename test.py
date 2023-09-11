@@ -1,19 +1,13 @@
-import os
-import glob
 import time
-import random
-from datetime import datetime
-from distutils.util import strtobool
-
-import torch
-import numpy as np
+import utils as utils
 import gym
+
+from agent.ppo_discrete import make_ppo_discrete
+from agent.ppo_continous import make_ppo_continous
 
 from arguments import parse_args
 from env.config import get_config
-from agent.ppo_discrete import make_ppo_discrete
-from agent.ppo_continous import make_ppo_continous
-import utils as utils
+
 
 
 #################################### Testing ###################################
