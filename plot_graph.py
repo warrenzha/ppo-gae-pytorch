@@ -8,9 +8,8 @@ def save_graph():
 
     print("============================================================================================")
 
-    env_name = 'CartPole-v1'
-
-    # env_name = 'BipedalWalker-v3'
+    #### Change this to your environment #############
+    env_name = 'CartPole-v1'    # Env name: 'CartPole-v1', 'LunarLander-v2', 'BipedalWalker-v3'
 
     fig_num = 1   #### change this to prevent overwriting figures in same env_name folder
 

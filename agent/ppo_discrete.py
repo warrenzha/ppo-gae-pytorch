@@ -191,4 +191,3 @@ class PPO_discrete:
     def load(self, checkpoint_path_actor, checkpoint_path_critic):
         self.actor.load_state_dict(torch.load(checkpoint_path_actor, map_location=lambda storage, loc: storage))
         self.critic.load_state_dict(torch.load(checkpoint_path_critic, map_location=lambda storage, loc: storage))
-
