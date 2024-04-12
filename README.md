@@ -1,4 +1,4 @@
-# PPO-pytorch
+# PPO-GAE-pytorch
 _Wenyuan Zhao_
 
 ## Introduction
@@ -10,10 +10,10 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 
 ## Usage
 
-- To train a new network : example - train PPO on *CartPole* domain   
+- Train a discrete PPO agent in *CartPole-v1* environment 
 
   ```
-  python3 train.py \
+  python train.py \
       --env_name cartpole \
       --seed 1 \
       --pretrained 1 \
@@ -24,18 +24,18 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
       --K_epochs 40
   ```
 
-- To evaluate a preTrained network : example - evaluate PPO in *CartPole* domain 
+- Evaluate a pre-trained PPO agent in *CartPole* domain 
 
   ```
-  python3 eval.py \
+  python eval.py \
       --env_name cartpole \
       --seed 1 \
       --pretrained 1
   ```
 
-- All parameters and hyperparamters to control training / testing are in `env/config.py` file.
+- All parameters and hyperparamters to control training and testing are in `env/config.py` file.
 
-* We provide a pre-trained model that can be used for evaluation: 
+* We provide a pre-trained model that can be used directly for evaluation: 
 
   ```
   python3 eval.py \
@@ -46,7 +46,7 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 
 #### Note :
   - Device is set to GPU as default if CUDA is available.
-  - if the environment runs on CPU, use CPU as device for faster training. Box-2d and Roboschool run on CPU and training them on GPU device will be significantly slower because the data will be moved between CPU and GPU often.
+  - If the RL environment runs on CPU, use CPU as device for faster training. Box-2d and Roboschool run on CPU and training them on GPU device will be significantly slower because the data will be moved between CPU and GPU often.
 
 ## Experimental Results
 
@@ -62,9 +62,9 @@ A concise explaination of PPO algorithm can be found [here](https://stackoverflo
 If you find our work useful in your research, please consider citing this repository as follows:
 
 ```
-@misc{ppo-pytorch,
+@misc{ppo-gae-pytorch,
     author = {Zhao, Wenyuan},
-    title = {PyTorch implementation of Proximal Policy Optimization (PPO)},
+    title = {A PyTorch implementation of Proximal Policy Optimization (PPO)},
     year = {2022},
     publisher = {GitHub},
     journal = {GitHub repository},
